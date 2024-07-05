@@ -14,7 +14,7 @@ interface IProps {
  * Perspective library adds load to HTMLElement prototype.
  * This interface acts as a wrapper for Typescript compiler.
  */
-interface PerspectiveViewerElement {
+interface PerspectiveViewerElement extends HTMLElement {   // making the htmlelement dynamic using PerspectiveViewerElement interface
   load: (table: Table) => void,
 }
 
@@ -32,7 +32,7 @@ class Graph extends Component<IProps, {}> {
 
   componentDidMount() {
     // Get element to attach the table from the DOM.
-    const elem: PerspectiveViewerElement = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
+    const elem = document.getElementsByTagName('perspective-viewer')[0] as unknown as PerspectiveViewerElement;
 
     const schema = {
       stock: 'string',
@@ -45,9 +45,32 @@ class Graph extends Component<IProps, {}> {
       this.table = window.perspective.worker().table(schema);
     }
     if (this.table) {
-      // Load the `table` in the `<perspective-viewer>` DOM reference.
-
-      // Add more Perspective configurations here.
+      // If the Perspective table is initialized, configure the perspective-viewer element
+      // and load the table data into it.
+    
+      // Set the type of chart to y_line (line chart)
+      elem.setAttribute("view", "y_line");
+    
+      // Set the columns to pivot on for the table (used for grouping data by these columns)
+      elem.setAttribute("column-pivots", '["stock"]');
+    
+      // Set the rows to pivot on for the table (used for grouping data by these rows)
+      elem.setAttribute("row-pivots", '["timestamp"]');
+    
+      // Specify the columns to display in the chart
+      elem.setAttribute("columns", '["top_ask_price"]');
+    
+      // Set the aggregate functions for the columns to process data
+      elem.setAttribute("aggregates", JSON.stringify({
+        stock: "distinct count",    // Count distinct values in the stock column
+        top_ask_price: "avg",       // Calculate average for top_ask_price
+        top_bid_price: "avg",       // Calculate average for top_bid_price
+        timestamp: "distinct count" // Count distinct values in the timestamp column
+      }));
+    
+      // Add more Perspective configurations here if needed.
+    
+      // Load the Perspective table into the perspective-viewer element
       elem.load(this.table);
     }
   }
@@ -61,8 +84,8 @@ class Graph extends Component<IProps, {}> {
         // Format the data from ServerRespond to the schema
         return {
           stock: el.stock,
-          top_ask_price: el.top_ask && el.top_ask.price || 0,
-          top_bid_price: el.top_bid && el.top_bid.price || 0,
+          top_ask_price: (el.top_ask && el.top_ask.price) || 0,
+          top_bid_price: (el.top_bid && el.top_bid.price) || 0,
           timestamp: el.timestamp,
         };
       }));
